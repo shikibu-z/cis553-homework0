@@ -1,0 +1,128 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# All Vagrant configuration is done below. The "2" in Vagrant.configure
+# configures the configuration version (we support older styles for
+# backwards compatibility). Please don't change it unless you know what
+# you're doing.
+
+Vagrant.configure(2) do |config|
+
+  # 64 bit Ubuntu Vagrant Box
+  config.vm.box = "ubuntu/xenial64"
+
+  ## Configure hostname and port forwarding
+  config.vm.hostname = "cis553"
+  config.vm.network "forwarded_port", guest: 8888, host: 8888
+  config.ssh.forward_agent = true
+  config.ssh.forward_x11 = true
+
+  config.disksize.size = '15GB'
+
+  ## Provisioning
+  config.vm.provision "shell", inline: <<-SHELL
+    echo "Starting provisioning..." >> /home/vagrant/vagrant-cis553.log
+    sudo apt-get update
+    sudo apt-get install -y python-dev g++ python-pip
+    sudo apt-get install -y swapspace
+
+    # Assignment 1 & 2
+    sudo apt-get install -y git automake cmake libjudy-dev libgmp-dev libpcap-dev libboost-dev libboost-test-dev libboost-program-options-dev libboost-system-dev python-ipaddr libboost-iostreams-dev libboost-graph-dev libboost-filesystem-dev libboost-thread-dev libevent-dev libevent-dev libtool flex bison pkg-config libgc-dev libssl-dev arping
+    sudo pip install psutil
+    chmod ugo+x /vagrant/bootstrap.sh
+    /vagrant/bootstrap.sh
+
+    ## Assignment 3
+    echo "Starting HW3 setup..." >> /home/vagrant/vagrant-cis553.log
+    sudo apt-get install -y python-tk
+
+    ## Assignment 6
+    echo "Starting HW6 alsa setup..." >> /home/vagrant/vagrant-cis553.log
+    sudo apt-get install -y linux-image-extra-`uname -r` alsa alsa-utils pulseaudio pulseaudio-utils
+    echo 'options snd-hda-intel model=generic index=0' >> /etc/modprobe.d/alsa-base.conf
+    echo 'snd'                                         >> /etc/modules
+    echo 'snd-hda-intel'                               >> /etc/modules
+    modprobe snd
+    modprobe snd-hda-intel
+    alsa force-reload
+
+    gpasswd --add vagrant audio
+
+    echo "Starting HW6 python..." >> /home/vagrant/vagrant-cis553.log
+    sudo apt-get install -y libmad0-dev python-pyao
+    git clone https://github.com/jaqx0r/pymad.git
+    cd pymad
+    git checkout "144daa3afa7935af2e6d68a5e8a67eaf77a7c91c"
+    python setup.py build
+    sudo python setup.py install
+
+    echo "Starting SSH setup..." >> /home/vagrant/vagrant-cis553.log
+    cat > /home/vagrant/.bash_profile <<'endmsg'
+SSH_ENV="$HOME/.ssh/environment"
+
+function start_agent {
+    echo "Initialising new SSH agent..."
+    /usr/bin/ssh-agent | sed 's/^echo/#echo/' > "${SSH_ENV}"
+    echo succeeded
+    chmod 600 "${SSH_ENV}"
+    . "${SSH_ENV}" > /dev/null
+    /usr/bin/ssh-add /vagrant/cis553-key;
+}
+
+# Source SSH settings, if applicable
+
+if [ -f "${SSH_ENV}" ]; then
+    . "${SSH_ENV}" > /dev/null
+    #ps ${SSH_AGENT_PID} doesn't work under cywgin
+    ps -ef | grep ${SSH_AGENT_PID} | grep ssh-agent$ > /dev/null || {
+        start_agent;
+    }
+else
+    start_agent;
+fi
+endmsg
+
+  echo "All finished!!" >> /home/vagrant/vagrant-cis553.log
+  echo "All finished!!"
+
+  SHELL
+
+  ## Notebook
+  config.vm.provision "shell", run: "always", inline: <<-SHELL
+    sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+    sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
+    sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=1
+    # Assignment 6
+    #sudo alsactl init
+  SHELL
+
+  ## CPU & RAM
+  config.vm.provider "virtualbox" do |vb|
+    audio_driver = case RUBY_PLATFORM
+      when /linux/
+        "alsa"
+      when /darwin/
+        "coreaudio"
+      when /mswin|mingw|cygwin/
+        "dsound"
+      else
+        raise "Unknown RUBY_PLATFORM=#{RUBY_PLATFORM}"
+      end
+    audio_controller = case RUBY_PLATFORM
+      when /linux/
+        "hda"
+      when /darwin/
+        "hda"
+      when /mswin|mingw|cygwin/
+        "ac97"
+      else
+        raise "Unknown RUBY_PLATFORM=#{RUBY_PLATFORM}"
+      end
+    # (available options for audio: "alsa" or "pulse" for Linux host, "dsound" for Windows host, "coreaudio" for Mac OS)
+    vb.customize ["modifyvm", :id, "--cpuexecutioncap", "100", "--audioout", "on",
+                  "--audio", audio_driver, "--audiocontroller", audio_controller]
+    vb.memory = 4096
+    vb.cpus = 2
+  end
+
+end

@@ -1,0 +1,144 @@
+// Name: Junyong Zhao
+// PennKey: junyong
+
+/* switch 1 */
+
+/* header */
+struct ethernet_t
+{
+    char dstAddr[6];
+};
+
+struct headers_t
+{
+    struct ethernet_t ethernet;
+};
+
+struct local_variables_t;
+
+char *packet_1;
+struct headers_t hdr_1;
+struct local_variables_t metadata_1;
+struct standard_metadata_t standard_metadata_1;
+
+/* parser */
+void start_1()
+{
+    char *cursor = packet_1;
+    parse_ethernet_1(cursor);
+}
+
+void parse_ethernet_1(char *cursor)
+{
+    memcpy(&hdr_1.ethernet.dstAddr, cursor, sizeof(hdr_1.ethernet.dstAddr));
+    cursor += sizeof(hdr_1.ethernet.dstAddr);
+    accept_1();
+}
+
+/* ingress */
+void apply_1()
+{
+    switch (hdr_1.ethernet.dstAddr)
+    {
+    // using the compiler's default - drop, same below
+    case 0x000000000101:
+        aiForward_1(3);
+        break;
+    case 0x000000000202:
+        aiForward_1(1);
+        break;
+    case 0x000000000303:
+        aiForward_1(2);
+        break;
+    }
+}
+
+void aiForward_1(char egress_port[2])
+{
+    standard_metadata_1.egress_spec = egress_port;
+}
+
+/* switch 2 */
+char *packet_2;
+struct headers_t hdr_2;
+struct local_variables_t metadata_2;
+struct standard_metadata_t standard_metadata_2;
+
+/* parser */
+void start_2()
+{
+    char *cursor = packet_2;
+    parse_ethernet_2(cursor);
+}
+
+void parse_ethernet_2(char *cursor)
+{
+    memcpy(&hdr_2.ethernet.dstAddr, cursor, sizeof(hdr_2.ethernet.dstAddr));
+    cursor += sizeof(hdr_2.ethernet.dstAddr);
+    accept_2();
+}
+
+/* ingress */
+void apply_2()
+{
+    switch (hdr_2.ethernet.dstAddr)
+    {
+    case 0x000000000101:
+        aiForward_2(2);
+        break;
+    case 0x000000000202:
+        aiForward_2(1);
+        break;
+    case 0x000000000303:
+        aiForward_2(2);
+        break;
+    }
+}
+
+void aiForward_2(char egress_port[2])
+{
+    standard_metadata_2.egress_spec = egress_port;
+}
+
+/* switch 2 */
+char *packet_3;
+struct headers_t hdr_3;
+struct local_variables_t metadata_3;
+struct standard_metadata_t standard_metadata_3;
+
+/* parser */
+void start_3()
+{
+    char *cursor = packet_3;
+    parse_ethernet_3(cursor);
+}
+
+void parse_ethernet_3(char *cursor)
+{
+    memcpy(&hdr_3.ethernet.dstAddr, cursor, sizeof(hdr_3.ethernet.dstAddr));
+    cursor += sizeof(hdr_3.ethernet.dstAddr);
+    accept_3();
+}
+
+/* ingress */
+void apply_3()
+{
+    switch (hdr_3.ethernet.dstAddr)
+    {
+    // using the compiler's default - drop
+    case 0x000000000101:
+        aiForward_3(1);
+        break;
+    case 0x000000000202:
+        aiForward_3(1);
+        break;
+    case 0x000000000303:
+        aiForward_3(2);
+        break;
+    }
+}
+
+void aiForward_3(char egress_port[2])
+{
+    standard_metadata_3.egress_spec = egress_port;
+}
